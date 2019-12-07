@@ -4,20 +4,11 @@ public class PawnRaceClient {
 
     board.print();
 
-    int thing = 5;
-    int i = 1;
-
     while (board.isPlaying()) {
-      Move lastMove = board.getLastMove();
-      board.makeHumanMove();
+      //board.makeHumanMove();
+      //board.print();
+      board.makeAIMove(6);
       board.print();
-      if (i % thing == 0) {
-        System.out.println("Move reverted: ");
-        board.revertMove(lastMove);
-        board.print();
-      }
-
-      i++;
     }
   }
 }

@@ -90,17 +90,63 @@ public class Board {
     }
   }
 
-  private boolean isValidMove(Move m) {
+  public boolean isValidMove(Move m) {
     Boolean pawn = pawns.get(m.to);
 
     if (pawn == null) {
-      return m.isForward() || m.isDoubleForward() || m.isEnPassant(lastMove);
+      //return m.isForward() || m.isDoubleForward() || m.isEnPassant(lastMove);
+      return m.isForward() || m.isDoubleForward();
     }
     else if (pawn != whitesTurn) {
       return m.isDiagonal();
     }
 
     return false;
+  }
+
+  private int evaluate() {
+    if (state.equals(GameState.WHITE_WON)) {
+      return whitesTurn ? 20 : -20;
+    }
+
+    if (state.equals(GameState.BLACK_WON)) {
+      return whitesTurn ? -20 : 20;
+    }
+
+    return (whitesTurn ? 1 : -1) * (whitePawnCount - blackPawnCount);
+  }
+
+  private MoveValuePair negaMax(int depth) {
+    if (state.equals(GameState.WHITE_WON) || state.equals(GameState.BLACK_WON)) {
+      depth = 0;
+    }
+    if (depth == 0) {
+      return new MoveValuePair(null, evaluate());
+    }
+
+    List<Move> moves = getMoves();
+
+    if (state.equals(GameState.DRAW)) {
+      return new MoveValuePair(null, 0);
+    }
+
+    int max = Integer.MIN_VALUE;
+    Move bestMove = null;
+
+    for (Move m : moves) {
+      Move secondToLastMove = lastMove == null ? null : lastMove.deepCopy();
+      makeMove(m);
+      MoveValuePair moveValue = negaMax(depth - 1);
+      unmakeMove(secondToLastMove);
+      int score = -moveValue.getValue();
+
+      if (score > max) {
+        max = score;
+        bestMove = m;
+      }
+    }
+
+    return new MoveValuePair(bestMove, max);
   }
 
   private List<Move> getMoves() {
@@ -125,6 +171,10 @@ public class Board {
       }
     }
 
+    if (moves.isEmpty()) {
+      state = GameState.DRAW;
+    }
+
     return moves;
   }
 
@@ -139,10 +189,10 @@ public class Board {
 
   private void pawnUncaptured() {
     if (whitesTurn) {
-      blackPawnCount++;
+      whitePawnCount++;
     }
     else {
-      whitePawnCount++;
+      blackPawnCount++;
     }
   }
 
@@ -159,6 +209,16 @@ public class Board {
     return state.equals(GameState.PLAYING);
   }
 
+  public void makeHumanMove(String move) {
+    List<Move> moves = getMoves();
+
+    for (Move m : moves) {
+      if (m.toString().equals(move)) {
+        makeMove(m);
+      }
+    }
+  }
+
   public void makeHumanMove() {
     List<Move> moves = getMoves();
     boolean validMoveFound = false;
@@ -172,7 +232,7 @@ public class Board {
       for (Move m : moves) {
         if (m.toString().equals(humanMove)) {
           validMoveFound = true;
-          applyMove(m);
+          makeMove(m);
         }
       }
 
@@ -182,12 +242,22 @@ public class Board {
     }
   }
 
+  public void makeAIMove(int depth) {
+    Move nextMove = negaMax(depth).getMove();
+
+    if (nextMove != null) {
+      makeMove(nextMove);
+    }
+  }
+
   public Move getLastMove() {
     return lastMove;
   }
 
-  private void applyMove(Move m) {
+  private void makeMove(Move m) {
     if (!isValidMove(m)) {
+      print();
+      System.out.println(m);
       throw new IllegalArgumentException("Move applied is not valid.");
     }
 
@@ -208,7 +278,7 @@ public class Board {
     lastMove = m;
   }
 
-  public void revertMove(Move secondToLastMove) {
+  public void unmakeMove(Move secondToLastMove) {
     if (lastMove.isDiagonal()) {
       pawnUncaptured();
 
@@ -225,6 +295,8 @@ public class Board {
     }
 
     pawns.put(lastMove.from, !whitesTurn);
+
+    state = GameState.PLAYING;
 
     whitesTurn = !whitesTurn;
     lastMove = secondToLastMove;

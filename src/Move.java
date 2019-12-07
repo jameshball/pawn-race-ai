@@ -34,7 +34,7 @@ public class Move {
     return isDiagonal()
       && lastMove.isDoubleForward()
       && to.c == lastMove.to.c
-      && (to.r == lastMove.to.r + 1 || to.r == lastMove.to.r - 1);
+      && ((to.r == lastMove.to.r + 1 && to.r == Board.ROWS - 3) || (to.r == lastMove.to.r - 1 && to.r == 2));
   }
 
   @Override
@@ -53,5 +53,9 @@ public class Move {
     else {
       return sb.toString();
     }
+  }
+
+  public Move deepCopy() {
+    return new Move(new Vector(from.r, from.c), new Vector(to.r, to.c));
   }
 }
