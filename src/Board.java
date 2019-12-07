@@ -104,7 +104,7 @@ public class Board {
     return false;
   }
 
-  private int evaluate() {
+  private int evaluateNeg() {
     if (state.equals(GameState.WHITE_WON)) {
       return whitesTurn ? 20 : -20;
     }
@@ -116,12 +116,69 @@ public class Board {
     return (whitesTurn ? 1 : -1) * (whitePawnCount - blackPawnCount);
   }
 
-  private MoveValuePair negaMax(int depth) {
+  private int evaluate() {
+    if (state.equals(GameState.WHITE_WON)) {
+      return 20;
+    }
+
+    if (state.equals(GameState.BLACK_WON)) {
+      return -20;
+    }
+
+    return whitePawnCount - blackPawnCount;
+  }
+
+  private MoveValuePair minimax(int depth) {
     if (state.equals(GameState.WHITE_WON) || state.equals(GameState.BLACK_WON)) {
       depth = 0;
     }
     if (depth == 0) {
-      return new MoveValuePair(null, evaluate());
+      return new MoveValuePair(lastMove, evaluate());
+    }
+
+    List<Move> moves = getMoves();
+
+    if (state.equals(GameState.DRAW)) {
+      return new MoveValuePair(lastMove, 0);
+    }
+
+    int value = whitesTurn ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+    Move bestMove = null;
+
+    for (Move m : moves) {
+      if (whitesTurn) {
+        Move secondToLastMove = lastMove == null ? null : lastMove.deepCopy();
+        makeMove(m.deepCopy());
+        MoveValuePair moveValue = minimax(depth - 1);
+        unmakeMove(secondToLastMove);
+
+        if (moveValue.getValue() > value) {
+          value = moveValue.getValue();
+          bestMove = m.deepCopy();
+        }
+      }
+      else {
+        Move secondToLastMove = lastMove == null ? null : lastMove.deepCopy();
+        makeMove(m.deepCopy());
+        MoveValuePair moveValue = minimax(depth - 1);
+        unmakeMove(secondToLastMove);
+
+        if (moveValue.getValue() < value) {
+          value = moveValue.getValue();
+          bestMove = m.deepCopy();
+        }
+      }
+    }
+
+    return new MoveValuePair(bestMove, value);
+  }
+
+  private MoveValuePair negaMax(int depth, int alpha, int beta) {
+    if (state.equals(GameState.WHITE_WON) || state.equals(GameState.BLACK_WON)) {
+      depth = 0;
+    }
+    if (depth == 0) {
+      return new MoveValuePair(null, evaluateNeg());
     }
 
     List<Move> moves = getMoves();
@@ -136,13 +193,19 @@ public class Board {
     for (Move m : moves) {
       Move secondToLastMove = lastMove == null ? null : lastMove.deepCopy();
       makeMove(m);
-      MoveValuePair moveValue = negaMax(depth - 1);
+      MoveValuePair moveValue = negaMax(depth - 1, -beta, -alpha);
       unmakeMove(secondToLastMove);
       int score = -moveValue.getValue();
 
       if (score > max) {
         max = score;
         bestMove = m;
+      }
+
+      alpha = Math.max(alpha, max);
+
+      if (alpha >= beta) {
+        break;
       }
     }
 
@@ -243,10 +306,13 @@ public class Board {
   }
 
   public void makeAIMove(int depth) {
-    Move nextMove = negaMax(depth).getMove();
+    MoveValuePair nextMove = negaMax(depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    //MoveValuePair nextMove = minimax(depth);
 
-    if (nextMove != null) {
-      makeMove(nextMove);
+    System.out.println(nextMove.getValue());
+
+    if (nextMove.getMove() != null) {
+      makeMove(nextMove.getMove());
     }
   }
 
@@ -269,13 +335,13 @@ public class Board {
       pawns.remove(lastMove.to);
     }
 
-    pawns.put(m.to, whitesTurn);
-    pawns.remove(m.from);
+    pawns.put(m.deepCopy().to, whitesTurn);
+    pawns.remove(m.deepCopy().from);
 
     checkWon(m);
 
     whitesTurn = !whitesTurn;
-    lastMove = m;
+    lastMove = m.deepCopy();
   }
 
   public void unmakeMove(Move secondToLastMove) {
@@ -283,22 +349,22 @@ public class Board {
       pawnUncaptured();
 
       if (lastMove.isEnPassant(secondToLastMove)) {
-        pawns.put(secondToLastMove.to, whitesTurn);
-        pawns.remove(lastMove.to);
+        pawns.put(secondToLastMove.deepCopy().to, whitesTurn);
+        pawns.remove(lastMove.deepCopy().to);
       }
       else {
-        pawns.put(lastMove.to, whitesTurn);
+        pawns.put(lastMove.deepCopy().to, whitesTurn);
       }
     }
     else {
-      pawns.remove(lastMove.to);
+      pawns.remove(lastMove.deepCopy().to);
     }
 
-    pawns.put(lastMove.from, !whitesTurn);
+    pawns.put(lastMove.deepCopy().from, !whitesTurn);
 
     state = GameState.PLAYING;
 
     whitesTurn = !whitesTurn;
-    lastMove = secondToLastMove;
+    lastMove = secondToLastMove == null ? null : secondToLastMove.deepCopy();
   }
 }

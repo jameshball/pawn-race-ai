@@ -5,9 +5,9 @@ public class PawnRaceClient {
     board.print();
 
     while (board.isPlaying()) {
-      //board.makeHumanMove();
-      //board.print();
-      board.makeAIMove(6);
+      board.makeHumanMove();
+      board.print();
+      board.makeAIMove(11);
       board.print();
     }
   }
