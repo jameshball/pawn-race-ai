@@ -1,29 +1,29 @@
 public class Move {
-  public int[] from;
-  public int[] to;
+  public Vector from;
+  public Vector to;
 
-  public Move(int[] from, int[] to) {
+  public Move(Vector from, Vector to) {
     this.from = from;
     this.to = to;
   }
 
   public Move(int rFrom, int cFrom, int rTo, int cTo) {
-    this(new int[] {rFrom, cFrom}, new int[] {rTo, cTo});
+    this(new Vector(rFrom, cFrom), new Vector(rTo, cTo));
   }
 
   public boolean isForward() {
-    return from[1] == to[1]
-      && (from[0] + 1 == to[0] || from[0] - 1 == to[0]);
+    return from.c == to.c
+      && (from.r + 1 == to.r || from.r - 1 == to.r);
   }
 
   public boolean isDoubleForward() {
-    return from[1] == to[1]
-      && ((from[0] + 2 == to[0] && from[0] == 1) || (from[0] - 2 == to[0] && from[0] == Board.ROWS - 2));
+    return from.c == to.c
+      && ((from.r + 2 == to.r && from.r == 1) || (from.r - 2 == to.r && from.r == Board.ROWS - 2));
   }
 
   public boolean isDiagonal() {
-    return (from[0] + 1 == to[0] || from[0] - 1 == to[0])
-      && (from[1] + 1 == to[1] || from[1] - 1 == to[1]);
+    return (from.r + 1 == to.r || from.r - 1 == to.r)
+      && (from.c + 1 == to.c || from.c - 1 == to.c);
   }
 
   public boolean isEnPassant(Move lastMove) {
@@ -33,7 +33,25 @@ public class Move {
 
     return isDiagonal()
       && lastMove.isDoubleForward()
-      && to[1] == lastMove.to[1]
-      && (to[0] == lastMove.to[0] + 1 || to[0] == lastMove.to[0] - 1);
+      && to.c == lastMove.to.c
+      && (to.r == lastMove.to.r + 1 || to.r == lastMove.to.r - 1);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append((char) ('a' + from.c));
+    sb.append(Board.ROWS - from.r);
+    sb.append('x');
+    sb.append((char) ('a' + to.c));
+    sb.append(Board.ROWS - to.r);
+
+    if (isForward() || isDoubleForward()) {
+      return sb.substring(3, 5);
+    }
+    else {
+      return sb.toString();
+    }
   }
 }
